@@ -1,4 +1,10 @@
 <canvas id="c" width=400 height=300 style="width:400px;height:300px"></canvas>
+<div id="uiContainer">
+  <div id="ui">
+    <div id="x"></div>
+    <div id="y"></div>
+  </div>
+</div>
 <script id="2d-vertex-shader" type="notjs">
   uniform vec2 u_resolution;
   attribute vec2 a_texcoord;
@@ -6,12 +12,13 @@
   attribute vec4 a_color;
   varying vec4 v_color;
   varying vec2 v_texcoord;
+  uniform float u_flipY;
 
   void main() {
     vec2 zeroToOne = a_position / u_resolution;
     vec2 zeroToTwo = zeroToOne * 2.0;
     vec2 clipSpace = zeroToTwo - 1.0;
-    gl_Position = vec4(clipSpace*vec2(1, -1), 0, 1);
+    gl_Position = vec4(clipSpace*vec2(1, u_flipY), 0, 1);
     v_color = a_color;
     v_texcoord = a_texcoord;
   }
@@ -20,14 +27,26 @@
   precision mediump float;
   uniform sampler2D u_image;
   uniform vec2 u_textureSize;
+  uniform float u_kernel[9];
+  uniform float u_kernelweight;
   varying vec2 v_texcoord;
   varying vec4 v_color;
   void main() {
     vec2 onePixel = vec2(1.0, 1.0) / u_textureSize;
-    gl_FragColor = (
-      texture2D(u_image, v_texcoord) + 
-      texture2D(u_image, v_texcoord+vec2(onePixel.x, 0.0)) + 
-      texture2D(u_image, v_texcoord+vec2(-onePixel.x, 0.0)))/3.0;
+    vec4 colorsum = 
+      texture2D(u_image, v_texcoord + onePixel * vec2(-1, -1)) * u_kernel[0] + 
+      texture2D(u_image, v_texcoord + onePixel * vec2( 0, -1)) * u_kernel[1] + 
+      texture2D(u_image, v_texcoord + onePixel * vec2( 1, -1)) * u_kernel[2] + 
+      texture2D(u_image, v_texcoord + onePixel * vec2(-1,  0)) * u_kernel[3] + 
+      texture2D(u_image, v_texcoord + onePixel * vec2( 0,  0)) * u_kernel[4] + 
+      texture2D(u_image, v_texcoord + onePixel * vec2( 1,  0)) * u_kernel[5] + 
+      texture2D(u_image, v_texcoord + onePixel * vec2(-1,  1)) * u_kernel[6] + 
+      texture2D(u_image, v_texcoord + onePixel * vec2( 0,  1)) * u_kernel[7] + 
+      texture2D(u_image, v_texcoord + onePixel * vec2( 1,  1)) * u_kernel[8] ;
+
+    gl_FragColor = vec4((colorsum/u_kernelweight).rgb, 1.0);
   }
 </script>
-<script src="test.js"></script>
+<script src="webgl-lessons-ui.js"></script>
+<script src="webgl-utils.js"></script>
+<script src="test2.js"></script>
